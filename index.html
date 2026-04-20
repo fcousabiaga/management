@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión Ureca</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+:root{
+  --bg:#F7F6F2;--surface:#FFF;--s2:#F0EEE8;--s3:#E8E6DF;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.15);
+  --text:#1A1A18;--muted:#888780;--hint:#B4B2A9;
+  --red:#E24B4A;--red-bg:#FCEBEB;--red-t:#791F1F;
+  --amber:#EF9F27;--amber-bg:#FAEEDA;--amber-t:#633806;
+  --green:#1D9E75;--green-bg:#E1F5EE;--green-t:#085041;
+  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-t:#0C447C;
+  --purple:#7F77DD;--purple-bg:#EEEDFE;--purple-t:#3C3489;
+  --gray-bg:#F1EFE8;--gray-t:#5F5E5A;
+  --today-bg:#FCEBEB;--today-t:#791F1F;--today-b:#F09595;
+  --week-bg:#FAEEDA;--week-t:#633806;--week-b:#FAC775;
+  --r:10px;--rsm:6px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;padding-bottom:5rem}
+.shell{max-width:1400px;margin:0 auto;padding:0 1.25rem}
+
+/* header */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 0;position:sticky;top:0;z-index:100}
+.hinner{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.logo{font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--text)}
+.hright{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sync-pill{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.sync-pill:hover{border-color:var(--border2)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--hint);flex-shrink:0;transition:background .3s}
+.sdot.on{background:var(--green)}.sdot.err{background:var(--red)}.sdot.spin{background:var(--amber)}
+.btn{font-family:var(--font);font-size:13px;padding:6px 14px;border-radius:var(--rsm);cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text)}
+.btn:hover{background:var(--s2)}
+.btn-dark{background:var(--text);color:var(--surface);border-color:var(--text)}.btn-dark:hover{opacity:.85}
+.btn-sm{font-size:12px;padding:4px 10px}
+.btn-danger{border-color:#F09595;color:var(--red-t)}.btn-danger:hover{background:var(--red-bg)}
+.btn-today{background:var(--today-bg);color:var(--today-t);border-color:var(--today-b);font-size:11px;padding:3px 8px}
+.btn-today:hover{background:#f9d5d5}
+.btn-week{background:var(--week-bg);color:var(--week-t);border-color:var(--week-b);font-size:11px;padding:3px 8px}
+.btn-week:hover{background:#f5e0b8}
+
+/* nav tabs */
+.nav{display:flex;gap:4px;margin:1rem 0 0;border-bottom:1px solid var(--border);padding-bottom:0}
+.nav-tab{font-size:13px;padding:7px 16px;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font)}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
+.nav-tab.tab-today{color:var(--today-t)}.nav-tab.tab-today.active{border-bottom-color:var(--today-t)}
+.nav-tab.tab-week{color:var(--amber-t)}.nav-tab.tab-week.active{border-bottom-color:var(--amber-t)}
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;min-width:16px;height:16px;border-radius:8px;padding:0 4px;margin-left:5px;background:var(--s2);color:var(--muted)}
+.nav-tab.tab-today .nav-badge{background:var(--today-bg);color:var(--today-t)}
+.nav-tab.tab-week .nav-badge{background:var(--week-bg);color:var(--week-t)}
+.view{display:none}.view.active{display:block}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:1.25rem 0}
+@media(max-width:700px){.metrics{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:440px){.metrics{grid-template-columns:repeat(2,1fr)}}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;cursor:pointer}
+.metric:hover{border-color:var(--border2)}
+.metric.m-today{border-color:var(--today-b);background:var(--today-bg)}
+.metric.m-week{border-color:var(--week-b);background:var(--week-bg)}
+.metric-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.metric.m-today .metric-lbl{color:var(--today-t)}
+.metric.m-week .metric-lbl{color:var(--week-t)}
+.metric-val{font-size:26px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums}
+.metric.m-today .metric-val{color:var(--today-t);font-weight:500}
+.metric.m-week .metric-val{color:var(--week-t);font-weight:500}
+.metric-val.alert{color:var(--red)}
+.metric-sub{font-size:10px;color:var(--hint);margin-top:3px}
+
+/* quick add */
+.qabar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:1rem}
+.qa-lbl{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+.qa-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qa-row input[type=text]{flex:1;min-width:180px}
+input,select,textarea{font-family:var(--font);font-size:13px;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 10px;color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--border2)}
+select{cursor:pointer}
+input[type=date]{font-size:12px;font-family:var(--mono)}
+input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--text)}
+.qa-hint{font-size:11px;color:var(--hint);margin-top:7px}
+
+/* filters */
+.filters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:1rem;align-items:center}
+.chip{font-size:12px;padding:3px 11px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--muted);white-space:nowrap;font-family:var(--font)}
+.chip:hover{border-color:var(--border2);color:var(--text)}
+.chip.active{background:var(--text);color:var(--surface);border-color:var(--text)}
+.chip.pri-alta{border-color:#F09595;color:var(--red-t)}.chip.pri-alta.active{background:var(--red-t);border-color:var(--red-t);color:#fff}
+.chip.pri-media{border-color:#FAC775;color:var(--amber-t)}.chip.pri-media.active{background:var(--amber-t);border-color:var(--amber-t);color:#fff}
+.chip.pri-baja{border-color:#C0DD97;color:var(--green-t)}.chip.pri-baja.active{background:var(--green-t);border-color:var(--green-t);color:#fff}
+.chip.danger{background:var(--red-bg);color:var(--red-t);border-color:#F09595}
+.fdiv{width:1px;height:14px;background:var(--border2);margin:0 3px;flex-shrink:0}
+.fgl{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:.4px;margin-right:1px}
+
+/* kanban */
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+@media(max-width:900px){.kanban{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.kanban{grid-template-columns:1fr}}
+.col{background:var(--s2);border-radius:var(--r);padding:10px}
+.col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.col-name{font-size:12px;font-weight:500}
+.col-meta{display:flex;align-items:center;gap:5px}
+.col-count{font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1px 7px}
+.col-add{font-size:18px;color:var(--hint);cursor:pointer;line-height:1;padding:0 2px;background:none;border:none;font-family:var(--font)}
+.col-add:hover{color:var(--muted)}
+.col-toggle{font-size:13px;color:var(--hint);cursor:pointer;background:none;border:none;line-height:1;padding:0 2px}
+.col-toggle:hover{color:var(--muted)}
+.col-body.hidden{display:none}
+.empty-col{font-size:12px;color:var(--hint);text-align:center;padding:1.5rem 0;border:1.5px dashed var(--border);border-radius:var(--rsm);min-height:56px}
+
+/* task card */
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 11px;margin-bottom:7px;cursor:pointer;user-select:none;transition:border-color .12s,transform .1s}
+.tcard:hover{border-color:var(--border2);transform:translateY(-1px)}
+.tcard.c-today{border-left:3px solid var(--red);padding-left:9px;background:var(--today-bg)}
+.tcard.c-week{border-left:3px solid var(--amber);padding-left:9px;background:var(--week-bg)}
+.tcard.c-overdue{border-left:3px solid var(--red);padding-left:9px}
+.tcard.c-done{opacity:.45}
+.tcard.sortable-ghost{opacity:.3;background:var(--s2)}
+.tcard.sortable-drag{opacity:.95;transform:rotate(.8deg)}
+.tcard-title{font-size:13px;line-height:1.4;margin-bottom:7px}
+.tcard.c-done .tcard-title{text-decoration:line-through;color:var(--muted)}
+.tcard-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.tag{font-size:10px;font-weight:500;padding:2px 6px;border-radius:4px;line-height:1.4}
+.tag-proj{background:var(--purple-bg);color:var(--purple-t)}
+.tag-yo{background:var(--green-bg);color:var(--green-t)}
+.tag-del{background:var(--amber-bg);color:var(--amber-t)}
+.tag-esp{background:var(--blue-bg);color:var(--blue-t)}
+.tag-idea{background:var(--gray-bg);color:var(--gray-t)}
+.tag-alta{background:var(--red-bg);color:var(--red-t)}
+.tag-media{background:var(--amber-bg);color:var(--amber-t)}
+.tag-baja{background:var(--green-bg);color:var(--green-t)}
+.tcard-foot{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.avatar{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0;font-family:var(--mono)}
+.date-tag{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.date-over{font-size:11px;color:var(--red);font-weight:500;font-family:var(--mono)}
+.done-mark{font-size:12px;color:var(--green);margin-left:auto}
+.bita-preview{font-size:11px;color:var(--muted);border-left:2px solid var(--border2);padding-left:6px;margin:4px 0;line-height:1.4;font-style:italic}
+.cl-progress{height:3px;border-radius:2px;background:var(--border);margin:3px 0 5px;overflow:hidden}
+.cl-bar{height:100%;background:var(--green);border-radius:2px}
+
+/* priority quick-action buttons on card */
+.card-actions{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+
+/* today / week special views */
+.special-list{display:flex;flex-direction:column;gap:8px;margin-top:1rem}
+.special-section-lbl{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:1rem 0 8px;display:flex;align-items:center;gap:8px}
+.special-section-lbl::after{content:"";flex:1;height:1px;background:var(--border)}
+
+/* completed view */
+.week-selector{display:flex;align-items:center;gap:12px;margin:1rem 0;flex-wrap:wrap}
+.week-num{font-size:32px;font-weight:300;color:var(--blue);font-variant-numeric:tabular-nums;min-width:48px;text-align:center}
+.week-nav{font-size:20px;cursor:pointer;color:var(--muted);background:none;border:none;line-height:1;padding:4px 8px;border-radius:var(--rsm)}
+.week-nav:hover{background:var(--s2);color:var(--text)}
+.week-info{font-size:13px;color:var(--muted)}
+.week-count{font-size:13px;font-weight:500;color:var(--green-t);background:var(--green-bg);border-radius:20px;padding:3px 12px}
+.completed-list{display:flex;flex-direction:column;gap:6px;margin-top:1rem}
+.done-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 14px;display:flex;align-items:center;gap:10px;opacity:.8}
+.done-card:hover{opacity:1;border-color:var(--border2)}
+.done-icon{color:var(--green);font-size:14px;flex-shrink:0}
+.done-title{font-size:13px;text-decoration:line-through;color:var(--muted);flex:1}
+.done-meta{font-size:11px;color:var(--hint);font-family:var(--mono);white-space:nowrap}
+.empty-state{text-align:center;padding:3rem;color:var(--hint);font-size:14px}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;overflow-y:auto}
+.modal{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:1.5rem;width:100%;max-width:560px;margin:auto}
+.modal-title{font-size:16px;font-weight:500;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
+.modal-close{font-size:20px;color:var(--muted);cursor:pointer;background:none;border:none;line-height:1}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%}
+.field textarea{height:56px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.cl-section,.bita-section{margin:4px 0 12px}
+.subsec-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
+.cl-list{display:flex;flex-direction:column;gap:4px;margin-bottom:7px}
+.cl-row{display:flex;align-items:center;gap:7px}
+.cl-row input[type=text]{flex:1;padding:4px 8px;font-size:13px}
+.cl-del{background:none;border:none;color:var(--hint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px}
+.cl-del:hover{color:var(--red)}
+.cl-add-row{display:flex;gap:6px}
+.cl-add-input{flex:1;font-size:13px;padding:5px 9px}
+.bita-feed{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;max-height:160px;overflow-y:auto}
+.bita-entry{background:var(--s2);border-radius:var(--rsm);padding:7px 9px;position:relative}
+.bita-meta{font-size:10px;color:var(--hint);font-family:var(--mono);margin-bottom:2px}
+.bita-author{color:var(--muted);font-weight:500}
+.bita-text{font-size:13px;line-height:1.4}
+.bita-del{position:absolute;top:5px;right:7px;background:none;border:none;color:var(--hint);cursor:pointer;font-size:13px}
+.bita-del:hover{color:var(--red)}
+.bita-add-row{display:flex;gap:7px;align-items:flex-start}
+.bita-add-row textarea{flex:1;height:48px;resize:none;font-size:13px}
+.bita-right{display:flex;flex-direction:column;gap:5px}
+
+/* toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:var(--surface);font-size:13px;padding:9px 15px;border-radius:var(--rsm);z-index:300;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;max-width:280px}
+.toast.show{opacity:1;transform:translateY(0)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="shell hinner">
+    <div class="logo"><span class="logo-dot"></span>Gestión Ureca</div>
+    <div class="hright">
+      <div class="sync-pill" onclick="syncSheets()"><div class="sdot" id="sdot"></div><span id="sync-lbl">Conectando...</span></div>
+      <button class="btn btn-sm btn-dark" onclick="openModal(-1)">+ Nueva</button>
+    </div>
+  </div>
+  <div class="shell">
+    <div class="nav">
+      <button class="nav-tab tab-today active" onclick="setView('today')">Hoy <span class="nav-badge" id="nb-today">0</span></button>
+      <button class="nav-tab tab-week" onclick="setView('week')">Esta semana <span class="nav-badge" id="nb-week">0</span></button>
+      <button class="nav-tab" onclick="setView('kanban')">Tablero</button>
+      <button class="nav-tab" onclick="setView('done')">Completadas</button>
+    </div>
+  </div>
+</header>
+
+<div class="shell" style="padding-top:1rem">
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="qabar">
+    <div class="qa-lbl">Captura rápida</div>
+    <div class="qa-row">
+      <input type="text" id="qa-t" placeholder="¿Qué hay que hacer?" onkeydown="if(event.key==='Enter')addQuick()">
+      <select id="qa-p"></select>
+      <select id="qa-tp"><option>Yo</option><option>Delegado</option><option>En espera</option><option>Idea</option></select>
+      <select id="qa-pr"><option>Alta</option><option>Media</option><option>Baja</option></select>
+      <select id="qa-r"><option value="">Responsable</option></select>
+      <input type="date" id="qa-f">
+      <select id="qa-est"><option value="Pendiente">Pendiente</option><option value="Hoy">★ Hoy</option><option value="Esta semana">Esta semana</option></select>
+      <button class="btn btn-dark btn-sm" onclick="addQuick()">Agregar</button>
+    </div>
+    <div class="qa-hint">Enter para agregar · Arrastra tarjetas entre columnas · Cmd+K para enfocar</div>
+  </div>
+
+  <div class="filters" id="filter-bar"></div>
+
+  <!-- VIEW: HOY -->
+  <div class="view active" id="view-today">
+    <div class="special-section-lbl">Para hacer hoy</div>
+    <div id="today-list" class="special-list"></div>
+    <div style="margin-top:1.5rem">
+      <div class="special-section-lbl">Pendientes sin fecha (mover a hoy)</div>
+      <div id="no-date-list" class="special-list"></div>
+    </div>
+  </div>
+
+  <!-- VIEW: SEMANA -->
+  <div class="view" id="view-week">
+    <div class="special-section-lbl">Esta semana</div>
+    <div id="week-list" class="special-list"></div>
+    <div style="margin-top:1.5rem">
+      <div class="special-section-lbl">Hoy (incluidas en semana)</div>
+      <div id="week-today-list" class="special-list"></div>
+    </div>
+  </div>
+
+  <!-- VIEW: KANBAN -->
+  <div class="view" id="view-kanban">
+    <div class="kanban" id="kanban"></div>
+  </div>
+
+  <!-- VIEW: COMPLETADAS -->
+  <div class="view" id="view-done">
+    <div class="week-selector">
+      <button class="week-nav" onclick="changeWeek(-1)">&#8592;</button>
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:2px">Semana</div>
+        <div class="week-num" id="done-week-num">16</div>
+      </div>
+      <button class="week-nav" onclick="changeWeek(1)">&#8594;</button>
+      <div class="week-info" id="done-week-info"></div>
+      <div class="week-count" id="done-week-count">0 completadas</div>
+      <button class="btn btn-sm" onclick="changeWeek(0)" title="Semana actual">Hoy</button>
+    </div>
+    <div class="completed-list" id="done-list"></div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-box"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwN2WPJLUG12KQ-lSK5jr0OOcISF5tdWL32Kk4Ykav_SZXFy7udqJhOxXijpax07DPv/exec";
+const PROJECTS=["Amarah","Amarah II","Oscar Retana","Personal"];
+const TEAM=["FU","Daniela Rubio","Alejandro Gonzalez","Adolfo","Leticia Usabiaga","Liz Olvera","Nana Retana","Oscar Retana","Uriel Retana","David Retana","Barbara Belauzaran","Ricardo Lara","Sebastian","Andrea Ramirez","Lic. Pamela Notaria","Tessy","ER"];
+const ESTADOS=["Pendiente","En curso","En espera","Hoy","Esta semana","Cerrado","Idea"];
+const KANBAN_COLS=[
+  {id:"Hoy",       label:"Hoy",        color:"#791F1F", bg:"#FCEBEB"},
+  {id:"Esta semana",label:"Esta semana",color:"#633806", bg:"#FAEEDA"},
+  {id:"Pendiente", label:"Pendiente",   color:"#888780", bg:null},
+  {id:"En espera", label:"En espera",   color:"#854F0B", bg:null},
+];
+const APAL=[["#EEEDFE","#3C3489"],["#E1F5EE","#085041"],["#FAEEDA","#633806"],["#E6F1FB","#0C447C"],["#EAF3DE","#27500A"],["#FBEAF0","#72243E"]];
+const todayISO=new Date().toISOString().split("T")[0];
+const todayDate=new Date();
+function getISOWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil((((t-y)/86400000)+1)/7);}
+const currentWeek=getISOWeek(todayDate);
+
+let tasks=[];
+let nextId=1;
+let filterProj=null,filterResp=null,filterPri=null;
+let currentView="today";
+let doneWeek=currentWeek;
+let editChecklist=[],editBitacora=[];
+let collapsedCols=JSON.parse(localStorage.getItem("u_col")||"{}");
+let syncOk=false;
+
+// ── init ─────────────────────────────────────────────────────────────────
+window.onload=()=>{
+  loadLocal();
+  populateSelects();
+  syncSheets();
+  render();
+  setDoneWeekInfo();
+};
+
+function loadLocal(){
+  try{
+    const s=localStorage.getItem("u_tasks");
+    const n=localStorage.getItem("u_nextid");
+    if(s){tasks=JSON.parse(s);nextId=n?parseInt(n):Math.max(...tasks.map(t=>Number(t.id)||0),0)+1;}
+  }catch(e){}
+}
+function saveLocal(){
+  try{localStorage.setItem("u_tasks",JSON.stringify(tasks));localStorage.setItem("u_nextid",String(nextId));}catch(e){}
+}
+
+function populateSelects(){
+  const qp=document.getElementById("qa-p");PROJECTS.forEach(p=>qp.insertAdjacentHTML("beforeend",`<option>${p}</option>`));
+  const qr=document.getElementById("qa-r");TEAM.forEach(r=>qr.insertAdjacentHTML("beforeend",`<option>${r}</option>`));
+}
+
+// ── view routing ──────────────────────────────────────────────────────────
+function setView(v){
+  currentView=v;
+  document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".nav-tab").forEach(el=>el.classList.remove("active"));
+  document.getElementById(`view-${v}`).classList.add("active");
+  const tab=document.querySelector(`[onclick="setView('${v}')"]`);
+  if(tab)tab.classList.add("active");
+  render();
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────
+function isOverdue(t){return t.fecha&&t.fecha<todayISO&&!["Cerrado","Idea"].includes(t.estado);}
+function fmt(d){if(!d)return"";const dt=new Date(d+"T12:00:00");return dt.toLocaleDateString("es-MX",{day:"numeric",month:"short"});}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function avStyle(n){const i=n?n.charCodeAt(0)%APAL.length:0;return `background:${APAL[i][0]};color:${APAL[i][1]}`;}
+function initials(n){return n?n.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2):"?";}
+function getWeek(t){if(!t.fecha)return null;return getISOWeek(new Date(t.fecha+"T12:00:00"));}
+
+function applyFilters(list){
+  return list.filter(t=>{
+    if(filterProj&&t.proyecto!==filterProj)return false;
+    if(filterResp&&t.resp!==filterResp)return false;
+    if(filterPri&&t.pri!==filterPri)return false;
+    return true;
+  });
+}
+
+// ── render ────────────────────────────────────────────────────────────────
+function render(){
+  renderMetrics();
+  renderFilters();
+  if(currentView==="today")  renderTodayView();
+  if(currentView==="week")   renderWeekView();
+  if(currentView==="kanban") renderKanban();
+  if(currentView==="done")   renderDoneView();
+  updateNavBadges();
+}
+
+function updateNavBadges(){
+  document.getElementById("nb-today").textContent=tasks.filter(t=>t.estado==="Hoy").length;
+  document.getElementById("nb-week").textContent=tasks.filter(t=>t.estado==="Esta semana"||t.estado==="Hoy").length;
+}
+
+function renderMetrics(){
+  const venc=tasks.filter(t=>isOverdue(t)).length;
+  document.getElementById("metrics").innerHTML=[
+    {lbl:"HOY",val:tasks.filter(t=>t.estado==="Hoy").length,sub:"para hacer hoy",cls:"m-today",click:"setView('today')"},
+    {lbl:"Esta semana",val:tasks.filter(t=>t.estado==="Esta semana"||t.estado==="Hoy").length,sub:"objetivo semanal",cls:"m-week",click:"setView('week')"},
+    {lbl:"Mis pendientes",val:tasks.filter(t=>t.tipo==="Yo"&&!["Cerrado","Idea"].includes(t.estado)).length,sub:"tipo Yo",cls:"",click:"setView('kanban')"},
+    {lbl:"Delegados",val:tasks.filter(t=>t.tipo==="Delegado"&&t.estado!=="Cerrado").length,sub:"en seguimiento",cls:"",click:"setView('kanban')"},
+    {lbl:"Vencidos",val:venc,sub:"requieren atención",cls:venc>0?"":"",click:"setView('kanban')"},
+  ].map(d=>`<div class="metric ${d.cls}" onclick="${d.click}" title="Ver detalle">
+    <div class="metric-lbl">${d.lbl}</div>
+    <div class="metric-val${d.lbl==="Vencidos"&&d.val>0?" alert":""}">${d.val}</div>
+    <div class="metric-sub">${d.sub}</div>
+  </div>`).join("");
+}
+
+function renderFilters(){
+  const active=tasks.filter(t=>!["Cerrado","Idea"].includes(t.estado));
+  const pc={},rc={};
+  PROJECTS.forEach(p=>{pc[p]=active.filter(t=>t.proyecto===p).length;});
+  TEAM.forEach(r=>{rc[r]=active.filter(t=>t.resp===r).length;});
+  let h=`<span class="fgl">Proyecto</span>`;
+  h+=`<button class="chip${!filterProj?" active":""}" onclick="setProj(null)">Todos</button>`;
+  PROJECTS.filter(p=>pc[p]>0||filterProj===p).forEach(p=>{
+    h+=`<button class="chip${filterProj===p?" active":""}" onclick="setProj('${p}')">${p} <span style="opacity:.6;font-size:10px">${pc[p]}</span></button>`;
+  });
+  h+=`<div class="fdiv"></div><span class="fgl">Prioridad</span>`;
+  [{k:"Alta",c:"pri-alta"},{k:"Media",c:"pri-media"},{k:"Baja",c:"pri-baja"}].forEach(({k,c})=>{
+    h+=`<button class="chip ${c}${filterPri===k?" active":""}" onclick="setPri('${k}')">${k}</button>`;
+  });
+  const rlist=TEAM.filter(r=>rc[r]>0||filterResp===r);
+  if(rlist.length){
+    h+=`<div class="fdiv"></div><span class="fgl">Persona</span>`;
+    rlist.forEach(r=>{h+=`<button class="chip${filterResp===r?" active":""}" onclick="setResp('${esc(r)}')">${r}</button>`;});
+  }
+  if(filterProj||filterResp||filterPri)h+=`<button class="chip danger" onclick="clearFilters()">× limpiar</button>`;
+  document.getElementById("filter-bar").innerHTML=h;
+}
+
+function setProj(p){filterProj=p;render();}
+function setResp(r){filterResp=filterResp===r?null:r;render();}
+function setPri(p){filterPri=filterPri===p?null:p;render();}
+function clearFilters(){filterProj=null;filterResp=null;filterPri=null;render();}
+
+// ── TODAY view ────────────────────────────────────────────────────────────
+function renderTodayView(){
+  const todayTasks=applyFilters(tasks.filter(t=>t.estado==="Hoy"));
+  const noDateTasks=applyFilters(tasks.filter(t=>!t.fecha&&!["Cerrado","Idea","Hoy","Esta semana"].includes(t.estado))).slice(0,8);
+  document.getElementById("today-list").innerHTML=todayTasks.length?todayTasks.map(t=>buildListCard(t)).join(""):`<div class="empty-state">Sin tareas para hoy — agrega una o mueve tareas a "Hoy"</div>`;
+  document.getElementById("no-date-list").innerHTML=noDateTasks.length?noDateTasks.map(t=>buildListCard(t,true)).join(""):`<div style="font-size:12px;color:var(--hint);padding:.5rem 0">Sin pendientes sin fecha</div>`;
+}
+
+// ── WEEK view ─────────────────────────────────────────────────────────────
+function renderWeekView(){
+  const weekTasks=applyFilters(tasks.filter(t=>t.estado==="Esta semana"));
+  const todayTasks=applyFilters(tasks.filter(t=>t.estado==="Hoy"));
+  document.getElementById("week-list").innerHTML=weekTasks.length?weekTasks.map(t=>buildListCard(t)).join(""):`<div class="empty-state">Sin tareas para esta semana</div>`;
+  document.getElementById("week-today-list").innerHTML=todayTasks.length?todayTasks.map(t=>buildListCard(t)).join(""):`<div style="font-size:12px;color:var(--hint);padding:.5rem 0">Sin tareas marcadas para hoy</div>`;
+}
+
+function buildListCard(t,showMoveBtn=false){
+  const over=isOverdue(t);
+  const tc=t.tipo==="Yo"?"tag-yo":t.tipo==="Delegado"?"tag-del":t.tipo==="En espera"?"tag-esp":"tag-idea";
+  const pc=t.pri==="Alta"?"tag-alta":t.pri==="Media"?"tag-media":"tag-baja";
+  const avEl=t.resp?`<span class="avatar" style="${avStyle(t.resp)}">${initials(t.resp)}</span>`:"";
+  const dateEl=t.fecha?(over?`<span class="date-over">${fmt(t.fecha)} !</span>`:`<span class="date-tag">${fmt(t.fecha)}</span>`):"";
+  const moveBtn=showMoveBtn?`<button class="btn-today btn" onclick="event.stopPropagation();moveToToday(${t.id})">→ Hoy</button><button class="btn-week btn" onclick="event.stopPropagation();moveToWeek(${t.id})">→ Semana</button>`:"";
+  const doneBtn=`<button class="btn btn-sm" style="font-size:11px;padding:2px 8px;margin-left:auto;color:var(--green-t);border-color:#C0DD97" onclick="event.stopPropagation();markDone(${t.id})">✓ Cerrar</button>`;
+  return `<div class="tcard${t.estado==="Hoy"?" c-today":t.estado==="Esta semana"?" c-week":over?" c-overdue":""}" onclick="openModal(${t.id})">
+    <div style="display:flex;align-items:flex-start;gap:8px">
+      <div style="flex:1">
+        <div class="tcard-title">${esc(t.title)}</div>
+        <div class="tcard-tags"><span class="tag tag-proj">${t.proyecto}</span><span class="tag ${tc}">${t.tipo}</span><span class="tag ${pc}">${t.pri}</span></div>
+        <div class="tcard-foot">${avEl}${dateEl}${moveBtn}${doneBtn}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── KANBAN view ───────────────────────────────────────────────────────────
+function renderKanban(){
+  const visible=applyFilters(tasks.filter(t=>!["Cerrado","Idea"].includes(t.estado)));
+  const kb=document.getElementById("kanban");
+  // Add Idea col separately
+  const allCols=[...KANBAN_COLS,{id:"En curso",label:"En curso",color:"#185FA5",bg:null},{id:"Idea",label:"Ideas",color:"#534AB7",bg:null}];
+  // Use only 4 main cols in grid, Idea as 5th
+  const displayCols=[...KANBAN_COLS,{id:"Idea",label:"Ideas",color:"#534AB7",bg:null}];
+  kb.innerHTML=displayCols.map(col=>{
+    const collapsed=!!collapsedCols[col.id];
+    const ct=visible.filter(t=>t.estado===col.id);
+    // include "En curso" in Pendiente col display
+    const ctDisplay=col.id==="Pendiente"?applyFilters(tasks.filter(t=>t.estado==="Pendiente"||t.estado==="En curso")):ct;
+    const cards=ctDisplay.map(t=>buildKanbanCard(t)).join("");
+    const colStyle=col.bg?`background:${col.bg}15;border:1px solid ${col.bg}66`:"";
+    const tog=col.id==="Cerrado"?`<button class="col-toggle" onclick="event.stopPropagation();toggleCol('${col.id}')">${collapsed?"▶":"▼"}</button>`:"";
+    return `<div class="col" id="col-${col.id}" style="${colStyle}">
+      <div class="col-head">
+        <span class="col-name" style="color:${col.color}">${col.label}</span>
+        <div class="col-meta"><span class="col-count">${ctDisplay.length}</span>${tog}<button class="col-add" onclick="openModalCol('${col.id}')">+</button></div>
+      </div>
+      <div class="col-body${collapsed?" hidden":""}" id="colbody-${col.id}">${cards||`<div class="empty-col">Sin tareas</div>`}</div>
+    </div>`;
+  }).join("");
+  initSortable();
+}
+
+function buildKanbanCard(t){
+  const over=isOverdue(t);
+  const tc=t.tipo==="Yo"?"tag-yo":t.tipo==="Delegado"?"tag-del":t.tipo==="En espera"?"tag-esp":"tag-idea";
+  const pc=t.pri==="Alta"?"tag-alta":t.pri==="Media"?"tag-media":"tag-baja";
+  const dateEl=t.fecha?(over?`<span class="date-over">${fmt(t.fecha)} !</span>`:`<span class="date-tag">${fmt(t.fecha)}</span>`):"";
+  const avEl=t.resp?`<span class="avatar" style="${avStyle(t.resp)}">${initials(t.resp)}</span>`:"";
+  let clHtml="";
+  if(t.checklist&&t.checklist.length){const dc=t.checklist.filter(c=>c.done).length;const pct=Math.round(dc/t.checklist.length*100);clHtml=`<div class="cl-progress"><div class="cl-bar" style="width:${pct}%"></div></div>`;}
+  let bitaHtml="";
+  if(t.bitacora&&t.bitacora.length){const last=t.bitacora[t.bitacora.length-1];bitaHtml=`<div class="bita-preview">${esc(last.autor)}: ${esc(last.texto.slice(0,60))}${last.texto.length>60?"...":""}</div>`;}
+  const cardCls=t.estado==="Hoy"?" c-today":t.estado==="Esta semana"?" c-week":over?" c-overdue":t.estado==="Cerrado"?" c-done":"";
+  const quickBtns=`<div class="card-actions" onclick="event.stopPropagation()">
+    <button class="btn-today btn" onclick="moveToToday(${t.id})">Hoy</button>
+    <button class="btn-week btn" onclick="moveToWeek(${t.id})">Semana</button>
+  </div>`;
+  return `<div class="tcard${cardCls}" data-id="${t.id}" onclick="openModal(${t.id})">
+    <div class="tcard-title">${esc(t.title)}</div>
+    <div class="tcard-tags"><span class="tag tag-proj">${t.proyecto}</span><span class="tag ${tc}">${t.tipo}</span><span class="tag ${pc}">${t.pri}</span></div>
+    ${clHtml}${bitaHtml}
+    <div class="tcard-foot">${avEl}${dateEl}</div>
+    ${t.estado!=="Cerrado"&&t.estado!=="Idea"?quickBtns:""}
+  </div>`;
+}
+
+function initSortable(){
+  [...KANBAN_COLS,{id:"Idea"},{id:"En curso"}].forEach(col=>{
+    const el=document.getElementById(`colbody-${col.id}`);if(!el)return;
+    Sortable.create(el,{
+      group:"kanban",animation:150,ghostClass:"sortable-ghost",dragClass:"sortable-drag",
+      delay:120,delayOnTouchOnly:true,
+      onEnd(evt){
+        const id=parseInt(evt.item.dataset.id);
+        const newCol=evt.to.id.replace("colbody-","");
+        const t=tasks.find(x=>x.id===id);
+        if(t&&t.estado!==newCol){t.estado=newCol;saveLocal();if(syncOk)pushTask(t,"update");toast(`→ ${newCol}`);renderMetrics();renderFilters();updateNavBadges();}
+      }
+    });
+  });
+}
+
+// ── DONE view ─────────────────────────────────────────────────────────────
+function renderDoneView(){
+  const done=tasks.filter(t=>t.estado==="Cerrado"&&getISOWeek(t._closedDate?new Date(t._closedDate):todayDate)===doneWeek||
+    (t.estado==="Cerrado"&&t.fecha&&getISOWeek(new Date(t.fecha+"T12:00:00"))===doneWeek));
+  // simpler: filter by week stored on task or by fecha week
+  const doneTasks=tasks.filter(t=>{
+    if(t.estado!=="Cerrado")return false;
+    const w=t._week||getWeek(t)||currentWeek;
+    return w===doneWeek;
+  });
+  document.getElementById("done-week-count").textContent=`${doneTasks.length} completada${doneTasks.length!==1?"s":""}`;
+  document.getElementById("done-list").innerHTML=doneTasks.length
+    ?doneTasks.map(t=>`<div class="done-card">
+        <span class="done-icon">&#10003;</span>
+        <div style="flex:1">
+          <div class="done-title">${esc(t.title)}</div>
+          <div style="font-size:11px;color:var(--hint);margin-top:2px">${t.proyecto} · ${t.tipo}${t.resp?" · "+t.resp:""}</div>
+        </div>
+        <div class="done-meta">${fmt(t.fecha)||""}</div>
+      </div>`).join("")
+    :`<div class="empty-state">Sin tareas completadas en la semana ${doneWeek}</div>`;
+}
+
+function setDoneWeekInfo(){
+  const d=new Date();d.setDate(d.getDate()+(doneWeek-currentWeek)*7);
+  const start=new Date(d);start.setDate(start.getDate()-start.getDay()+1);
+  const end=new Date(start);end.setDate(end.getDate()+6);
+  const fmt2=dt=>dt.toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+  document.getElementById("done-week-num").textContent=doneWeek;
+  document.getElementById("done-week-info").textContent=`${fmt2(start)} – ${fmt2(end)}${doneWeek===currentWeek?" (semana actual)":""}`;
+}
+
+function changeWeek(delta){
+  if(delta===0){doneWeek=currentWeek;}else{doneWeek+=delta;if(doneWeek<1)doneWeek=1;if(doneWeek>52)doneWeek=52;}
+  setDoneWeekInfo();renderDoneView();
+}
+
+// ── quick actions ─────────────────────────────────────────────────────────
+function moveToToday(id){const t=tasks.find(x=>x.id===id);if(t){t.estado="Hoy";saveLocal();if(syncOk)pushTask(t,"update");render();toast("→ Hoy");}}
+function moveToWeek(id){const t=tasks.find(x=>x.id===id);if(t){t.estado="Esta semana";saveLocal();if(syncOk)pushTask(t,"update");render();toast("→ Esta semana");}}
+function markDone(id){const t=tasks.find(x=>x.id===id);if(t){t.estado="Cerrado";t._week=currentWeek;saveLocal();if(syncOk)pushTask(t,"update");render();toast("Tarea cerrada ✓");}}
+function toggleCol(id){collapsedCols[id]=!collapsedCols[id];localStorage.setItem("u_col",JSON.stringify(collapsedCols));renderKanban();}
+
+// ── quick add ─────────────────────────────────────────────────────────────
+function addQuick(){
+  const title=document.getElementById("qa-t").value.trim();if(!title)return;
+  const tipo=document.getElementById("qa-tp").value;
+  const est=document.getElementById("qa-est").value;
+  const t={id:nextId++,title,proyecto:document.getElementById("qa-p").value,tipo,pri:document.getElementById("qa-pr").value,resp:document.getElementById("qa-r").value,fecha:document.getElementById("qa-f").value,estado:tipo==="Idea"?"Idea":est,notas:"",checklist:[],bitacora:[]};
+  tasks.unshift(t);document.getElementById("qa-t").value="";document.getElementById("qa-f").value="";
+  saveLocal();if(syncOk)pushTask(t,"create");render();toast("Tarea agregada"+(syncOk?" · sincronizando":""));
+}
+
+// ── modal ─────────────────────────────────────────────────────────────────
+function openModal(id){
+  const isNew=id===-1;
+  const src=isNew?null:tasks.find(x=>x.id===id);
+  const t=isNew?{id:-1,title:"",proyecto:"Amarah",tipo:"Yo",pri:"Alta",resp:"FU",fecha:"",estado:"Pendiente",notas:"",checklist:[],bitacora:[]}:{...src,checklist:(src.checklist||[]).map(c=>({...c})),bitacora:(src.bitacora||[]).map(b=>({...b}))};
+  editChecklist=t.checklist;editBitacora=t.bitacora;
+  const sP=PROJECTS.map(p=>`<option${t.proyecto===p?" selected":""}>${p}</option>`).join("");
+  const sT=`<option value="">—</option>`+TEAM.map(r=>`<option${t.resp===r?" selected":""}>${r}</option>`).join("");
+  const sTp=["Yo","Delegado","En espera","Idea"].map(tp=>`<option${t.tipo===tp?" selected":""}>${tp}</option>`).join("");
+  const sPr=["Alta","Media","Baja"].map(p=>`<option${t.pri===p?" selected":""}>${p}</option>`).join("");
+  const sE=ESTADOS.map(e=>`<option${t.estado===e?" selected":""}>${e}</option>`).join("");
+  const calBtn=t.fecha?`<button class="btn btn-sm" style="border-color:#4285F4;color:#185FA5" onclick="openCal(${t.id})">📅 Calendar</button>`:"";
+  document.getElementById("modal-box").innerHTML=`
+    <div class="modal-title">${isNew?"Nueva tarea":"Editar tarea"}<button class="modal-close" onclick="closeModal()">×</button></div>
+    <div class="field"><label>Título</label><input type="text" id="m-title" value="${esc(t.title)}" placeholder="Descripción de la tarea"></div>
+    <div class="grid2">
+      <div class="field"><label>Proyecto</label><select id="m-proj">${sP}</select></div>
+      <div class="field"><label>Tipo</label><select id="m-tipo">${sTp}</select></div>
+      <div class="field"><label>Prioridad</label><select id="m-pri">${sPr}</select></div>
+      <div class="field"><label>Estado</label><select id="m-est">${sE}</select></div>
+      <div class="field"><label>Responsable</label><select id="m-resp">${sT}</select></div>
+      <div class="field"><label>Fecha límite</label><input type="date" id="m-fecha" value="${t.fecha}"></div>
+    </div>
+    <div class="cl-section">
+      <div class="subsec-lbl"><span>Checklist</span><span id="cl-pct" style="font-size:10px;color:var(--green);font-family:var(--mono)"></span></div>
+      <div class="cl-list" id="cl-list"></div>
+      <div class="cl-add-row"><input type="text" class="cl-add-input" id="cl-new" placeholder="Agregar subtarea..." onkeydown="if(event.key==='Enter'){event.preventDefault();addClItem()}"><button class="btn btn-sm" onclick="addClItem()">+</button></div>
+    </div>
+    <div class="bita-section">
+      <div class="subsec-lbl">Bitácora de seguimiento</div>
+      <div class="bita-feed" id="bita-feed"></div>
+      <div class="bita-add-row">
+        <textarea id="bita-new" placeholder="Avance, comentario o resultado..."></textarea>
+        <div class="bita-right">
+          <select id="bita-autor" style="font-size:12px;padding:4px 7px">${TEAM.map(r=>`<option>${r}</option>`).join("")}</select>
+          <button class="btn btn-sm" onclick="addBitaEntry()">Agregar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      ${!isNew?`<button class="btn btn-danger btn-sm" onclick="deleteTask(${t.id})">Eliminar</button>`:""}
+      ${calBtn}
+      <span style="flex:1"></span>
+      <button class="btn btn-sm" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-dark btn-sm" onclick="saveModal(${t.id})">Guardar${syncOk?" + Sync":""}</button>
+    </div>`;
+  renderClList();renderBitacora();
+  document.getElementById("overlay").style.display="flex";
+  document.getElementById("m-title").focus();
+}
+
+function openModalCol(estado){openModal(-1);setTimeout(()=>{const el=document.getElementById("m-est");if(el)el.value=estado;},30);}
+function closeModal(){document.getElementById("overlay").style.display="none";editChecklist=[];editBitacora=[];}
+
+function renderClList(){
+  const list=document.getElementById("cl-list");if(!list)return;
+  const done=editChecklist.filter(c=>c.done).length;
+  const pct=editChecklist.length?Math.round(done/editChecklist.length*100):0;
+  const pctEl=document.getElementById("cl-pct");if(pctEl)pctEl.textContent=editChecklist.length?`${done}/${editChecklist.length} · ${pct}%`:"";
+  list.innerHTML=editChecklist.map((c,i)=>`<div class="cl-row">
+    <input type="checkbox" ${c.done?"checked":""} onchange="toggleCl(${i})">
+    <input type="text" value="${esc(c.text)}" oninput="editCl(${i},this.value)" style="${c.done?"text-decoration:line-through;color:var(--hint)":""}">
+    <button class="cl-del" onclick="delCl(${i})">×</button>
+  </div>`).join("");
+}
+function addClItem(){const inp=document.getElementById("cl-new");const text=inp.value.trim();if(!text)return;editChecklist.push({text,done:false});inp.value="";renderClList();inp.focus();}
+function toggleCl(i){editChecklist[i].done=!editChecklist[i].done;renderClList();}
+function editCl(i,v){editChecklist[i].text=v;}
+function delCl(i){editChecklist.splice(i,1);renderClList();}
+
+function renderBitacora(){
+  const feed=document.getElementById("bita-feed");if(!feed)return;
+  if(!editBitacora.length){feed.innerHTML=`<div style="font-size:12px;color:var(--hint);padding:4px 0">Sin entradas aún</div>`;return;}
+  feed.innerHTML=editBitacora.map((b,i)=>`<div class="bita-entry">
+    <div class="bita-meta"><span class="bita-author">${esc(b.autor)}</span> · <span>${esc(b.fecha)}</span></div>
+    <div class="bita-text">${esc(b.texto)}</div>
+    <button class="bita-del" onclick="delBita(${i})">×</button>
+  </div>`).join("");
+  feed.scrollTop=feed.scrollHeight;
+}
+function addBitaEntry(){const texto=document.getElementById("bita-new").value.trim();if(!texto)return;const autor=document.getElementById("bita-autor").value;editBitacora.push({autor,fecha:todayISO,texto});document.getElementById("bita-new").value="";renderBitacora();}
+function delBita(i){editBitacora.splice(i,1);renderBitacora();}
+
+function saveModal(id){
+  const data={title:document.getElementById("m-title").value.trim(),proyecto:document.getElementById("m-proj").value,tipo:document.getElementById("m-tipo").value,pri:document.getElementById("m-pri").value,resp:document.getElementById("m-resp").value,fecha:document.getElementById("m-fecha").value,estado:document.getElementById("m-est").value,notas:"",checklist:editChecklist.map(c=>({...c})),bitacora:editBitacora.map(b=>({...b}))};
+  if(!data.title){document.getElementById("m-title").focus();return;}
+  if(data.estado==="Cerrado")data._week=currentWeek;
+  if(id===-1){const t={...data,id:nextId++};tasks.unshift(t);saveLocal();if(syncOk)pushTask(t,"create");toast("Tarea creada"+(syncOk?" · sync":""));}
+  else{const idx=tasks.findIndex(x=>x.id===id);if(idx>=0){tasks[idx]={...tasks[idx],...data};saveLocal();if(syncOk)pushTask(tasks[idx],"update");}toast("Guardado"+(syncOk?" · sync":""));}
+  closeModal();render();
+}
+
+function deleteTask(id){
+  if(!confirm("¿Eliminar esta tarea?"))return;
+  tasks=tasks.filter(x=>x.id!==id);
+  saveLocal();if(syncOk)pushTask({id},"delete");
+  closeModal();render();toast("Eliminada");
+}
+
+function openCal(taskId){
+  const title=document.getElementById("m-title").value.trim()||(tasks.find(t=>t.id===taskId)||{}).title||"";
+  const fecha=document.getElementById("m-fecha").value;const resp=document.getElementById("m-resp").value;
+  if(!fecha){toast("Agrega una fecha primero");return;}
+  const d=fecha.replace(/-/g,"");const nx=new Date(fecha+"T12:00:00");nx.setDate(nx.getDate()+1);
+  const de=nx.toISOString().split("T")[0].replace(/-/g,"");
+  window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${d}/${de}&details=${encodeURIComponent((resp?"Resp: "+resp+"\n":"")+"Gestión Ureca")}`,"_blank");
+}
+
+// ── Sheets sync ───────────────────────────────────────────────────────────
+async function syncSheets(){
+  setDot("spin","Sincronizando...");
+  try{
+    const res=await fetch(SCRIPT_URL+"?action=read",{redirect:"follow"});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    if(data.tareas&&data.tareas.length){
+      // Merge: remote is source of truth, but keep local _week metadata
+      const localMeta={};tasks.forEach(t=>{if(t._week)localMeta[t.id]=t._week;});
+      tasks=data.tareas.map((t,i)=>({
+        id:t.id||(nextId+i),title:t.title||"",
+        proyecto:PROJECTS.includes(t.proyecto)?t.proyecto:"Amarah",
+        tipo:t.tipo||"Yo",pri:t.pri||"Media",resp:t.resp||"",
+        fecha:t.fecha||"",estado:t.estado||"Pendiente",notas:t.notas||"",
+        checklist:Array.isArray(t.checklist)?t.checklist:[],
+        bitacora:Array.isArray(t.bitacora)?t.bitacora:[],
+        _week:localMeta[t.id]||null,
+      }));
+      nextId=Math.max(...tasks.map(t=>Number(t.id)||0),0)+1;
+      saveLocal();
+    }
+    syncOk=true;
+    const now=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+    setDot("on",`Sync ${now}`);
+    toast(`${tasks.length} tareas cargadas`);
+  }catch(e){
+    syncOk=false;
+    setDot("err","Sin conexión");
+    console.error("Sync error:",e);
+    toast("Modo local — sin conexión al Sheet");
+  }
+  render();
+}
+
+async function pushTask(t,action){
+  if(!SCRIPT_URL)return;
+  try{
+    await fetch(SCRIPT_URL,{method:"POST",redirect:"follow",body:JSON.stringify({action,data:t,id:t.id}),headers:{"Content-Type":"application/json"}});
+  }catch(e){console.warn("push error",e);}
+}
+
+function setDot(cls,label){
+  document.getElementById("sdot").className="sdot"+(cls?" "+cls:"");
+  document.getElementById("sync-lbl").textContent=label;
+}
+
+// ── toast ─────────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),2800);}
+
+// ── keyboard ──────────────────────────────────────────────────────────────
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape")closeModal();
+  if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();document.getElementById("qa-t").focus();}
+});
+</script>
+</body>
+</html>
